@@ -7,54 +7,65 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { ProjectsDashboard } from './pages/ProjectsDashboard';
 import { ProjectBoard } from './pages/ProjectBoard';
 import { AIAssistantPage } from './pages/AIAssistantPage';
+import { CommunityPage } from './pages/CommunityPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { HabitForm } from './components/habits/HabitForm';
+import { ReflectionModal } from './components/habits/ReflectionModal';
+import { FocusTimer } from './components/tools/FocusTimer';
 import { Modal } from './components/ui/Modal';
 import { Button } from './components/ui/Button';
-import { Habit, ViewMode, Project } from './types';
-import { getHabits, saveHabits, toggleHabitCompletion } from './services/habitService';
+import { Habit, ViewMode, Project, JournalEntry } from './types';
+import { getHabits, saveHabits, toggleHabitCompletion, addJournalEntry } from './services/habitService';
+import { addXp } from './services/authService';
 import { Trash2, Activity } from 'lucide-react';
 
 function AppContent() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
   const [habits, setHabits] = useState<Habit[]>([]);
+  
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'habit' | 'reflection' | 'focus'>('habit');
   const [editingHabit, setEditingHabit] = useState<Habit | undefined>(undefined);
   
   // Project State
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
+  // Only reload habits when the user ID changes, not when XP/Level changes (which also updates the user object)
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
         const data = getHabits();
-        // In a real app, API returns user specific data. 
-        // Here we filter locally or just assign all to the user if they have no ID (legacy/seed data)
         const userHabits = data.map(h => {
              if (!h.userId) return { ...h, userId: user.id };
              return h;
         }).filter(h => h.userId === user.id);
         
-        // If it's a new user and no habits, maybe we want to show seeded habits? 
-        // For now, let's just show what matches or the seeded list if it matches
-        // The getHabits() service already seeds. We just need to ensure the seeded data belongs to the first user or similar.
-        // For simplicity in this demo: if the habit has no userId, we assume it belongs to the current user.
-        
         setHabits(userHabits.length > 0 ? userHabits : data.filter(h => !h.userId));
     }
-  }, [user]);
+  }, [user?.id]);
 
   const handleToggle = (id: string, date: string) => {
+    const wasCompleted = habits.find(h => h.id === id)?.logs[date];
     const updated = toggleHabitCompletion(habits, id, date);
     setHabits(updated);
+    saveToStorage(updated);
     
-    // We need to save ALL habits back to storage, not just the user's filtered list
-    const allHabits = getHabits();
-    const merged = allHabits.map(h => {
-        const updatedHabit = updated.find(u => u.id === h.id);
-        return updatedHabit || h;
-    });
-    saveHabits(merged);
+    // Gamification Logic: +10 XP for completion
+    if (!wasCompleted) {
+        addXp(10);
+        refreshUser(); // Update UI without reload
+    }
   };
+  
+  const saveToStorage = (updatedHabits: Habit[]) => {
+      const allHabits = getHabits();
+      const merged = allHabits.map(h => {
+          const updatedHabit = updatedHabits.find(u => u.id === h.id);
+          return updatedHabit || h;
+      });
+      saveHabits(merged);
+  }
 
   const handleAddHabit = (habit: Habit) => {
     let updated;
@@ -64,16 +75,7 @@ function AppContent() {
         updated = [...habits, habit];
     }
     setHabits(updated);
-    
-    // Save to storage
-    const allHabits = getHabits();
-    let finalStorage;
-    if (editingHabit) {
-         finalStorage = allHabits.map(h => h.id === habit.id ? habit : h);
-    } else {
-         finalStorage = [...allHabits, habit];
-    }
-    saveHabits(finalStorage);
+    saveToStorage(updated);
     
     setIsModalOpen(false);
     setEditingHabit(undefined);
@@ -92,13 +94,55 @@ function AppContent() {
       }
   };
 
+  const handleJournalEntry = (entry: JournalEntry) => {
+      if (editingHabit) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const updated = addJournalEntry(habits, editingHabit.id, todayStr, entry);
+          setHabits(updated);
+          saveToStorage(updated);
+          
+          // Also mark as done if reflected?
+          if (!editingHabit.logs[todayStr]) {
+              handleToggle(editingHabit.id, todayStr);
+          } else {
+              addXp(5); // Bonus for reflecting
+              refreshUser();
+          }
+      }
+      setIsModalOpen(false);
+  };
+  
+  const handleFocusComplete = (habitId: string) => {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const habit = habits.find(h => h.id === habitId);
+      if (habit && !habit.logs[todayStr]) {
+          handleToggle(habitId, todayStr);
+      }
+      addXp(50); // Big bonus for focus session
+      refreshUser();
+      alert("Focus Session Complete! +50 XP");
+  };
+
   const openAddModal = () => {
       setEditingHabit(undefined);
+      setModalType('habit');
       setIsModalOpen(true);
   };
 
   const openEditModal = (habit: Habit) => {
       setEditingHabit(habit);
+      setModalType('habit');
+      setIsModalOpen(true);
+  };
+  
+  const openReflectionModal = (habit: Habit) => {
+      setEditingHabit(habit);
+      setModalType('reflection');
+      setIsModalOpen(true);
+  };
+
+  const openFocusModal = () => {
+      setModalType('focus');
       setIsModalOpen(true);
   };
 
@@ -163,7 +207,14 @@ function AppContent() {
       onAddHabit={openAddModal}
     >
       {currentView === 'dashboard' && (
-        <Dashboard user={user} habits={habits} onToggle={handleToggle} onEdit={openEditModal} />
+        <Dashboard 
+            user={user} 
+            habits={habits} 
+            onToggle={handleToggle} 
+            onEdit={openEditModal}
+            onOpenFocus={openFocusModal}
+            onReflect={openReflectionModal}
+        />
       )}
       {currentView === 'habits' && (
         <HabitsList />
@@ -174,27 +225,57 @@ function AppContent() {
       {currentView === 'analytics' && (
         <AnalyticsPage habits={habits} />
       )}
+      {currentView === 'community' && (
+        <CommunityPage />
+      )}
       {currentView === 'ai-assistant' && (
         <AIAssistantPage habits={habits} />
+      )}
+      {currentView === 'settings' && (
+        <SettingsPage user={user} />
       )}
 
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title={editingHabit ? "Edit Habit" : "Create New Habit"}
+        title={
+            modalType === 'focus' ? 'Focus Session' :
+            modalType === 'reflection' ? 'Reflection' :
+            editingHabit ? "Edit Habit" : "Create New Habit"
+        }
       >
-        <HabitForm 
-            initialData={editingHabit} 
-            onSubmit={handleAddHabit} 
-            onCancel={() => setIsModalOpen(false)} 
-        />
-        {editingHabit && (
-            <div className="mt-6 pt-6 border-t border-slate-100 flex justify-between items-center">
-                <span className="text-sm text-slate-500">Danger Zone</span>
-                <Button variant="danger" size="sm" onClick={() => handleDeleteHabit(editingHabit.id)}>
-                    <Trash2 size={16} className="mr-2" /> Delete Habit
-                </Button>
-            </div>
+        {modalType === 'habit' && (
+            <>
+                <HabitForm 
+                    initialData={editingHabit} 
+                    onSubmit={handleAddHabit} 
+                    onCancel={() => setIsModalOpen(false)} 
+                />
+                {editingHabit && (
+                    <div className="mt-6 pt-6 border-t border-slate-100 flex justify-between items-center">
+                        <span className="text-sm text-slate-500">Danger Zone</span>
+                        <Button variant="danger" size="sm" onClick={() => handleDeleteHabit(editingHabit.id)}>
+                            <Trash2 size={16} className="mr-2" /> Delete Habit
+                        </Button>
+                    </div>
+                )}
+            </>
+        )}
+
+        {modalType === 'reflection' && editingHabit && (
+            <ReflectionModal 
+                habitName={editingHabit.name} 
+                onSubmit={handleJournalEntry}
+                onCancel={() => setIsModalOpen(false)}
+            />
+        )}
+
+        {modalType === 'focus' && (
+            <FocusTimer 
+                habits={habits.filter(h => !h.archived)} 
+                onComplete={handleFocusComplete}
+                onClose={() => setIsModalOpen(false)}
+            />
         )}
       </Modal>
     </Layout>

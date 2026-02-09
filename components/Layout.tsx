@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, CheckSquare, BarChart2, Folder, Sparkles, Menu, X, LogOut, Plus, Activity, Grip } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, BarChart2, Folder, Sparkles, Menu, X, LogOut, Plus, Users, Settings } from 'lucide-react';
 import { Button } from './ui/Button';
 import { ViewMode } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,7 +21,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
     { id: 'habits', label: 'Habits', icon: CheckSquare },
     { id: 'projects', label: 'Projects', icon: Folder },
     { id: 'analytics', label: 'Reporting', icon: BarChart2 },
+    { id: 'community', label: 'Community', icon: Users },
     { id: 'ai-assistant', label: 'Discuss AI', icon: Sparkles },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   const SidebarContent = () => (
@@ -45,7 +47,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
         </Button>
       </div>
 
-      <nav className="flex-1 px-3 space-y-0.5 py-2">
+      <nav className="flex-1 px-3 space-y-0.5 py-2 overflow-y-auto custom-scrollbar">
         <div className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Apps</div>
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -72,6 +74,20 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
 
       {user && (
         <div className="p-4 border-t border-gray-100">
+             {/* Gamification Bar */}
+             <div className="mb-3">
+                 <div className="flex justify-between text-xs mb-1">
+                     <span className="font-bold text-gray-700">Lvl {user.level || 1}</span>
+                     <span className="text-gray-500">{user.xp || 0} XP</span>
+                 </div>
+                 <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                     <div 
+                        className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full" 
+                        style={{ width: `${Math.min(((user.xp || 0) % 100), 100)}%` }} 
+                     />
+                 </div>
+             </div>
+
             <div className="flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-50 cursor-pointer transition-colors group">
                 <img 
                     src={user.avatar} 
@@ -80,7 +96,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
                 />
                 <div className="flex-1 overflow-hidden">
                     <p className="text-sm font-medium text-gray-700 truncate">{user.name}</p>
-                    <p className="text-xs text-gray-500 truncate">Online</p>
+                    <p className="text-xs text-gray-500 truncate">Pro Plan</p>
                 </div>
                 <button onClick={signOut} className="text-gray-400 hover:text-gray-600 transition-colors">
                     <LogOut size={16} />

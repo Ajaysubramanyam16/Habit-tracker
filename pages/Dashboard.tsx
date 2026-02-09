@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Habit, User } from '../types';
-import { Check, Zap, Target, ArrowRight, Calendar, Grip, TrendingUp, Award, Activity } from 'lucide-react';
+import { Check, Zap, Target, ArrowRight, Calendar, Grip, TrendingUp, Award, Activity, PenLine, Clock } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { getAIInsight } from '../services/aiService';
@@ -10,6 +10,8 @@ interface DashboardProps {
   habits: Habit[];
   onToggle: (id: string, date: string) => void;
   onEdit: (habit: Habit) => void;
+  onOpenFocus: () => void;
+  onReflect: (habit: Habit) => void;
 }
 
 const MOTIVATIONAL_QUOTES = [
@@ -20,7 +22,7 @@ const MOTIVATIONAL_QUOTES = [
   "Do something today that your future self will thank you for."
 ];
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, onEdit }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, onEdit, onOpenFocus, onReflect }) => {
   const [insight, setInsight] = useState<string | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [quote, setQuote] = useState('');
@@ -141,11 +143,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
                 <Award size={28} />
             </div>
             <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Streak</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Level {user.level || 1}</p>
                 <p className="text-3xl font-bold text-gray-800">
-                    {Math.max(...habits.map(h => h.streak), 0)}
+                    {user.xp || 0} <span className="text-sm font-normal text-gray-400">XP</span>
                 </p>
-                <p className="text-xs text-amber-600 font-medium mt-1">Personal Best</p>
+                <p className="text-xs text-amber-600 font-medium mt-1">Next Level: 100 XP</p>
             </div>
         </div>
       </motion.div>
@@ -160,7 +162,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
                         <Activity size={20} className="text-violet-600" />
                         Active Protocols
                     </h2>
-                    <Button size="sm" variant="ghost" className="text-xs">View Calendar</Button>
+                    <Button size="sm" onClick={onOpenFocus} className="bg-violet-600 text-white">
+                        <Clock size={16} className="mr-2" /> Focus Mode
+                    </Button>
                 </div>
                 
                 <div className="divide-y divide-gray-100">
@@ -198,16 +202,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
                                     </div>
                                 </div>
 
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); onToggle(habit.id, todayStr); }}
-                                    className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
-                                        isCompleted 
-                                        ? 'bg-green-500 border-green-500 text-white shadow-md scale-100' 
-                                        : 'bg-white border-gray-200 text-transparent hover:border-violet-500 hover:text-violet-200 scale-95 hover:scale-100'
-                                    }`}
-                                >
-                                    <Check size={20} strokeWidth={4} />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onReflect(habit); }}
+                                        className="w-10 h-10 rounded-lg border border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex items-center justify-center transition-colors"
+                                        title="Log Reflection"
+                                    >
+                                        <PenLine size={18} />
+                                    </button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onToggle(habit.id, todayStr); }}
+                                        className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
+                                            isCompleted 
+                                            ? 'bg-green-500 border-green-500 text-white shadow-md scale-100' 
+                                            : 'bg-white border-gray-200 text-transparent hover:border-violet-500 hover:text-violet-200 scale-95 hover:scale-100'
+                                        }`}
+                                    >
+                                        <Check size={20} strokeWidth={4} />
+                                    </button>
+                                </div>
                             </motion.div>
                         );
                     })}

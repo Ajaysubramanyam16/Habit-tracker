@@ -1,8 +1,9 @@
 export type Frequency = 'daily' | 'weekly' | 'weekdays';
 
-export interface HabitLog {
-  date: string; // ISO date string YYYY-MM-DD
-  completed: boolean;
+export interface JournalEntry {
+  note: string;
+  mood: 'great' | 'neutral' | 'difficult';
+  timestamp: string;
 }
 
 export interface Habit {
@@ -15,9 +16,18 @@ export interface Habit {
   streak: number;
   bestStreak: number;
   logs: Record<string, boolean>; // Map date string to completion status
+  journal: Record<string, JournalEntry>; // Map date string to journal entry
   color: string;
   archived: boolean;
   userId: string; // Associated with a user
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  unlockedAt?: string;
 }
 
 export interface User {
@@ -26,6 +36,9 @@ export interface User {
   email: string;
   avatar?: string;
   role: 'admin' | 'user';
+  xp: number;
+  level: number;
+  badges: Badge[];
 }
 
 export interface CategoryOption {
@@ -35,7 +48,7 @@ export interface CategoryOption {
   icon: string;
 }
 
-export type ViewMode = 'dashboard' | 'habits' | 'analytics' | 'projects' | 'ai-assistant' | 'settings';
+export type ViewMode = 'dashboard' | 'habits' | 'analytics' | 'projects' | 'ai-assistant' | 'community' | 'settings';
 
 export interface AIInsight {
   message: string;

@@ -1,25 +1,7 @@
-import { Habit, HabitLog } from '../types';
+import { Habit, JournalEntry } from '../types';
 import { DEFAULT_HABITS_SEED } from '../constants';
 
 const STORAGE_KEY = 'lumina_habits_data';
-
-export const getHabits = (): Habit[] => {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (!data) {
-    // Seed initial data
-    const seed = DEFAULT_HABITS_SEED.map(h => ({
-        ...h,
-        logs: generateMockLogs()
-    })) as unknown as Habit[];
-    saveHabits(seed);
-    return seed;
-  }
-  return JSON.parse(data);
-};
-
-export const saveHabits = (habits: Habit[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(habits));
-};
 
 // Helper to generate some fake history for the demo
 const generateMockLogs = () => {
@@ -36,6 +18,25 @@ const generateMockLogs = () => {
     }
     return logs;
 }
+
+export const getHabits = (): Habit[] => {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (!data) {
+    // Seed initial data
+    const seed = DEFAULT_HABITS_SEED.map(h => ({
+        ...h,
+        logs: generateMockLogs(),
+        journal: {}
+    })) as unknown as Habit[];
+    saveHabits(seed);
+    return seed;
+  }
+  return JSON.parse(data);
+};
+
+export const saveHabits = (habits: Habit[]) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(habits));
+};
 
 export const toggleHabitCompletion = (habits: Habit[], habitId: string, date: string): Habit[] => {
   return habits.map(habit => {
@@ -58,6 +59,19 @@ export const toggleHabitCompletion = (habits: Habit[], habitId: string, date: st
       bestStreak: Math.max(habit.bestStreak, streak)
     };
   });
+};
+
+export const addJournalEntry = (habits: Habit[], habitId: string, date: string, entry: JournalEntry): Habit[] => {
+    return habits.map(habit => {
+        if (habit.id !== habitId) return habit;
+        return {
+            ...habit,
+            journal: {
+                ...habit.journal,
+                [date]: entry
+            }
+        };
+    });
 };
 
 const calculateStreak = (logs: Record<string, boolean>): number => {

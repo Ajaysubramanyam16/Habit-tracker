@@ -37,6 +37,7 @@ export const HabitForm: React.FC<HabitFormProps> = ({ initialData, onSubmit, onC
       logs: initialData?.logs || {},
       streak: initialData?.streak || 0,
       bestStreak: initialData?.bestStreak || 0,
+      journal: initialData?.journal || {},
       archived: initialData?.archived || false,
       userId: initialData?.userId || user.id,
     };
