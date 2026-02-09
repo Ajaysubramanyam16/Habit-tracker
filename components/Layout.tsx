@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, CheckSquare, BarChart2, Folder, Sparkles, Menu, X, LogOut, Plus, Settings } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, BarChart2, Folder, Sparkles, Menu, X, LogOut, Plus, Activity, Grip } from 'lucide-react';
 import { Button } from './ui/Button';
 import { ViewMode } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,34 +18,35 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'habits', label: 'My Habits', icon: CheckSquare },
+    { id: 'habits', label: 'Habits', icon: CheckSquare },
     { id: 'projects', label: 'Projects', icon: Folder },
-    { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-    { id: 'ai-assistant', label: 'AI Assistant', icon: Sparkles },
+    { id: 'analytics', label: 'Reporting', icon: BarChart2 },
+    { id: 'ai-assistant', label: 'Discuss AI', icon: Sparkles },
   ];
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-white border-r border-slate-100 shadow-sm">
-      <div className="p-6">
-        <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">L</div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">Lumina</span>
-        </div>
+    <div className="flex flex-col h-full bg-white border-r border-gray-200">
+      {/* Odoo-like Brand Header */}
+      <div className="h-16 flex items-center px-6 border-b border-gray-100">
+        <div className="w-8 h-8 rounded bg-violet-600 flex items-center justify-center text-white font-bold text-lg shadow-sm mr-3">L</div>
+        <span className="text-xl font-bold text-gray-800">Lumina</span>
       </div>
 
-      <div className="px-4 py-2">
+      <div className="p-4">
         <Button 
             onClick={() => {
                 onAddHabit();
                 setIsMobileMenuOpen(false);
             }} 
-            className="w-full justify-center shadow-indigo-200 shadow-md"
+            className="w-full justify-start shadow-none bg-violet-50 text-violet-700 border-violet-100 hover:bg-violet-100 hover:border-violet-200"
+            variant="secondary"
         >
-            <Plus size={18} className="mr-2" /> New Habit
+            <Plus size={18} className="mr-2" /> New
         </Button>
       </div>
 
-      <nav className="flex-1 px-4 py-6 space-y-1">
+      <nav className="flex-1 px-3 space-y-0.5 py-2">
+        <div className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Apps</div>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -56,13 +57,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
                 onChangeView(item.id as ViewMode);
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm font-medium transition-colors ${
                 isActive 
-                  ? 'bg-indigo-50 text-indigo-700 font-medium' 
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-gray-100 text-violet-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
-              <Icon size={20} className={isActive ? 'text-indigo-600' : 'text-slate-400'} />
+              <Icon size={18} className={isActive ? 'text-violet-600' : 'text-gray-400'} />
               {item.label}
             </button>
           );
@@ -70,19 +71,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
       </nav>
 
       {user && (
-        <div className="p-4 border-t border-slate-100">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors group">
+        <div className="p-4 border-t border-gray-100">
+            <div className="flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-50 cursor-pointer transition-colors group">
                 <img 
                     src={user.avatar} 
                     alt={user.name} 
-                    className="w-9 h-9 rounded-full bg-slate-200"
+                    className="w-8 h-8 rounded-full border border-gray-200"
                 />
                 <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium text-slate-700 truncate group-hover:text-indigo-600">{user.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                    <p className="text-sm font-medium text-gray-700 truncate">{user.name}</p>
+                    <p className="text-xs text-gray-500 truncate">Online</p>
                 </div>
-                <button onClick={signOut} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                    <LogOut size={18} />
+                <button onClick={signOut} className="text-gray-400 hover:text-gray-600 transition-colors">
+                    <LogOut size={16} />
                 </button>
             </div>
         </div>
@@ -91,19 +92,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-gray-50/50 flex text-sm">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block w-64 fixed h-full z-20">
+      <div className="hidden md:block w-64 fixed h-full z-20 shadow-[1px_0_20px_0_rgba(0,0,0,0.05)]">
         <SidebarContent />
       </div>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-100 z-30 px-4 py-3 flex items-center justify-between">
+      <div className="md:hidden fixed top-0 w-full bg-white border-b border-gray-200 z-30 px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">L</div>
-            <span className="font-bold text-slate-800">Lumina</span>
+            <div className="w-8 h-8 rounded bg-violet-600 flex items-center justify-center text-white font-bold">L</div>
+            <span className="font-bold text-gray-800 text-lg">Lumina</span>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600">
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-gray-600">
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
@@ -115,7 +116,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                transition={{ type: "tween", duration: 0.2 }}
                 className="fixed inset-0 z-20 md:hidden bg-white pt-16"
             >
                 <SidebarContent />
@@ -124,7 +125,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onChangeV
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-4 md:p-8 pt-20 md:pt-8 transition-all duration-300">
+      <main className="flex-1 md:ml-64 p-6 pt-24 md:pt-6 transition-all duration-300">
         <div className="max-w-6xl mx-auto h-full">
             {children}
         </div>

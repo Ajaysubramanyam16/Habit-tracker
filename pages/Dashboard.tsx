@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Habit, User } from '../types';
-import { Check, Flame, Calendar, ArrowRight, TrendingUp } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Check, Zap, Target, ArrowRight, Calendar, Grip, TrendingUp, Award, Activity } from 'lucide-react';
+import { motion, Variants } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { getAIInsight } from '../services/aiService';
 
@@ -12,18 +12,28 @@ interface DashboardProps {
   onEdit: (habit: Habit) => void;
 }
 
+const MOTIVATIONAL_QUOTES = [
+  "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
+  "Discipline is choosing between what you want now and what you want most.",
+  "Amateurs sit and wait for inspiration, the rest of us just get up and go to work.",
+  "Your future is created by what you do today, not tomorrow.",
+  "Do something today that your future self will thank you for."
+];
+
 export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, onEdit }) => {
   const [insight, setInsight] = useState<string | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
+  const [quote, setQuote] = useState('');
+
+  useEffect(() => {
+    setQuote(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
+  }, []);
   
   const todayStr = new Date().toISOString().split('T')[0];
-  
-  // Filter active habits for today
   const todaysHabits = habits.filter(h => !h.archived);
-  
   const completedCount = todaysHabits.filter(h => h.logs[todayStr]).length;
-  const progress = todaysHabits.length > 0 ? (completedCount / todaysHabits.length) * 100 : 0;
-
+  const progress = todaysHabits.length > 0 ? Math.round((completedCount / todaysHabits.length) * 100) : 0;
+  
   const handleGetInsight = async () => {
     setLoadingInsight(true);
     const text = await getAIInsight(habits);
@@ -31,132 +41,231 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
     setLoadingInsight(false);
   };
 
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants: Variants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 }
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header & Welcome */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-            <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">
-                Good Morning, {user.name.split(' ')[0]}
-            </h1>
-            <p className="text-slate-500 mt-2 font-medium">
-                You've completed <span className="text-indigo-600 font-bold">{completedCount}</span> out of <span className="text-slate-800 font-bold">{todaysHabits.length}</span> habits today.
-            </p>
+    <motion.div 
+      className="space-y-8 text-gray-800 pb-10"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Hero / Command Center Header */}
+      <motion.div 
+        variants={itemVariants}
+        className="relative overflow-hidden rounded-xl bg-white shadow-lg border border-gray-200 group"
+      >
+        <div className="absolute inset-0 z-0">
+             <img 
+                src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
+                className="w-full h-full object-cover opacity-10 group-hover:scale-105 transition-transform duration-700"
+                alt="Abstract Background"
+             />
+             <div className="absolute inset-0 bg-gradient-to-r from-violet-900/10 to-transparent"></div>
         </div>
-        <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-100 pr-6">
-             <div className="relative w-14 h-14 flex items-center justify-center">
-                 <svg className="transform -rotate-90 w-full h-full" viewBox="0 0 100 100">
-                     <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="8" />
-                     <circle 
-                        cx="50" cy="50" r="40" 
-                        fill="transparent" 
-                        stroke="#4f46e5" 
-                        strokeWidth="8" 
-                        strokeDasharray="251.2" 
-                        strokeDashoffset={251.2 - (251.2 * progress) / 100}
-                        strokeLinecap="round"
-                        className="transition-all duration-1000 ease-out"
-                     />
-                 </svg>
-                 <span className="absolute text-xs font-bold text-slate-700">{Math.round(progress)}%</span>
+
+        <div className="relative z-10 p-8 md:p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-1 rounded bg-violet-100 text-violet-700 text-xs font-bold uppercase tracking-wider">
+                        Command Center
+                    </span>
+                    <span className="text-gray-400 text-xs font-mono">{todayStr}</span>
+                </div>
+                <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
+                    Welcome back, {user.name.split(' ')[0]}.
+                </h1>
+                <p className="text-gray-600 font-medium italic max-w-xl text-lg opacity-80 border-l-4 border-violet-500 pl-4 mt-4">
+                    "{quote}"
+                </p>
+            </div>
+            
+            <div className="hidden md:block text-right">
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
+                        <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * progress) / 100} className="text-violet-600 transition-all duration-1000 ease-out" />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-xl font-bold text-gray-900">{progress}%</span>
+                        <span className="text-[10px] uppercase text-gray-500 font-bold">Done</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </motion.div>
+
+      {/* KPI Cards */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
+            <div className="p-4 rounded-full bg-blue-50 text-blue-600">
+                <Target size={28} />
             </div>
             <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Daily Goal</p>
-                <p className="text-sm font-bold text-slate-800">Keep it up!</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Remaining</p>
+                <p className="text-3xl font-bold text-gray-800">{todaysHabits.length - completedCount}</p>
+                <p className="text-xs text-blue-600 font-medium mt-1">Focus required</p>
             </div>
         </div>
-      </div>
-
-      {/* AI Insight Card */}
-      <div className="relative overflow-hidden bg-slate-900 rounded-2xl p-6 text-white shadow-xl shadow-slate-200">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-indigo-500 rounded-full blur-3xl opacity-20"></div>
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
         
-        <div className="relative flex items-start gap-4 z-10">
-            <div className="p-3 bg-white/10 rounded-xl backdrop-blur-md border border-white/10">
-                <Flame className="text-amber-300" size={24} fill="currentColor" />
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
+            <div className="p-4 rounded-full bg-emerald-50 text-emerald-600">
+                <Check size={28} />
             </div>
-            <div className="flex-1">
-                <h3 className="text-lg font-bold mb-2 tracking-wide">Daily Intelligence</h3>
-                <p className="text-slate-300 text-sm leading-relaxed max-w-2xl">
-                    {insight || "Analyze your performance trends and get personalized coaching to boost your consistency."}
+            <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Completed</p>
+                <p className="text-3xl font-bold text-gray-800">{completedCount}</p>
+                <p className="text-xs text-emerald-600 font-medium mt-1">Keep pushing</p>
+            </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
+            <div className="p-4 rounded-full bg-amber-50 text-amber-600">
+                <Award size={28} />
+            </div>
+            <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Streak</p>
+                <p className="text-3xl font-bold text-gray-800">
+                    {Math.max(...habits.map(h => h.streak), 0)}
                 </p>
-                {!insight && (
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        className="mt-4 border-none bg-white text-slate-900 hover:bg-indigo-50 font-semibold"
-                        onClick={handleGetInsight}
-                        isLoading={loadingInsight}
-                    >
-                        Generate Insight <ArrowRight size={14} className="ml-2" />
-                    </Button>
-                )}
+                <p className="text-xs text-amber-600 font-medium mt-1">Personal Best</p>
             </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Habits List */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Calendar size={20} className="text-indigo-600" /> 
-            Today's Focus
-        </h2>
-        
-        <div className="grid grid-cols-1 gap-4">
-            {todaysHabits.map((habit) => {
-                const isCompleted = !!habit.logs[todayStr];
-                
-                return (
-                    <motion.div 
-                        key={habit.id}
-                        layoutId={habit.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`group relative flex items-center p-5 bg-white rounded-2xl border transition-all duration-300 ${isCompleted ? 'border-indigo-100 shadow-none' : 'border-slate-100 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-100/50'}`}
-                    >
-                        <button 
-                            onClick={() => onToggle(habit.id, todayStr)}
-                            className={`flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                                isCompleted 
-                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-100' 
-                                : 'bg-slate-50 text-slate-300 border border-slate-200 group-hover:border-indigo-200 group-hover:text-indigo-500'
-                            }`}
-                        >
-                            <Check size={28} strokeWidth={3.5} />
-                        </button>
-
-                        <div className="ml-5 flex-1 cursor-pointer" onClick={() => onEdit(habit)}>
-                            <h3 className={`font-bold text-lg transition-colors ${isCompleted ? 'text-slate-400 line-through decoration-slate-300' : 'text-slate-800 group-hover:text-indigo-900'}`}>
-                                {habit.name}
-                            </h3>
-                            <div className="flex items-center gap-3 mt-1.5">
-                                <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-bold`}>
-                                    {habit.category}
-                                </span>
-                                <span className="flex items-center text-xs font-semibold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-md">
-                                    <Flame size={12} className="mr-1" fill="currentColor" />
-                                    {habit.streak} DAY STREAK
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className={`w-1.5 h-10 rounded-full ml-4 opacity-50`} style={{ backgroundColor: habit.color }}></div>
-                    </motion.div>
-                );
-            })}
-            
-            {todaysHabits.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-16 bg-white rounded-3xl border border-dashed border-slate-200">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4">
-                        <Check size={32} />
-                    </div>
-                    <p className="text-slate-500 font-medium">No habits scheduled for today.</p>
-                    <p className="text-slate-400 text-sm">Add a new habit to start tracking.</p>
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Habits List */}
+          <motion.div variants={itemVariants} className="lg:col-span-2">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80 backdrop-blur-sm">
+                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <Activity size={20} className="text-violet-600" />
+                        Active Protocols
+                    </h2>
+                    <Button size="sm" variant="ghost" className="text-xs">View Calendar</Button>
                 </div>
-            )}
-        </div>
+                
+                <div className="divide-y divide-gray-100">
+                    {todaysHabits.map((habit) => {
+                        const isCompleted = !!habit.logs[todayStr];
+                        
+                        return (
+                            <motion.div 
+                                key={habit.id}
+                                layoutId={habit.id}
+                                className={`group flex items-center justify-between p-5 hover:bg-gray-50 transition-all cursor-pointer border-l-4 ${isCompleted ? 'bg-gray-50/50 border-green-500' : 'border-transparent hover:border-violet-500'}`}
+                                onClick={() => onEdit(habit)}
+                            >
+                                <div className="flex items-center gap-5 flex-1">
+                                    <div 
+                                        className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg shadow-sm transition-transform group-hover:scale-105 ${isCompleted ? 'bg-gray-200 text-gray-400' : 'text-white'}`} 
+                                        style={{ backgroundColor: isCompleted ? undefined : habit.color }}
+                                    >
+                                        {habit.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <h3 className={`font-bold text-base ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                                            {habit.name}
+                                        </h3>
+                                        <div className="flex items-center gap-3 mt-1.5">
+                                            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm font-bold bg-gray-100 text-gray-600`}>
+                                                {habit.category}
+                                            </span>
+                                            {habit.streak > 0 && (
+                                                <span className="text-[10px] font-bold text-orange-600 flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded-sm">
+                                                    <Zap size={10} fill="currentColor" /> {habit.streak} DAY STREAK
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onToggle(habit.id, todayStr); }}
+                                    className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
+                                        isCompleted 
+                                        ? 'bg-green-500 border-green-500 text-white shadow-md scale-100' 
+                                        : 'bg-white border-gray-200 text-transparent hover:border-violet-500 hover:text-violet-200 scale-95 hover:scale-100'
+                                    }`}
+                                >
+                                    <Check size={20} strokeWidth={4} />
+                                </button>
+                            </motion.div>
+                        );
+                    })}
+                    
+                    {todaysHabits.length === 0 && (
+                        <div className="py-16 flex flex-col items-center justify-center text-gray-400 bg-gray-50/30">
+                            <Target size={56} className="mb-4 opacity-20 text-violet-500" />
+                            <p className="text-base font-medium text-gray-500">All systems quiet.</p>
+                            <p className="text-sm">No habits scheduled for today.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+          </motion.div>
+
+          {/* AI Side Panel */}
+          <motion.div variants={itemVariants} className="space-y-6">
+               {/* Insight Widget */}
+                <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-xl shadow-lg p-6 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Zap size={20} className="text-amber-300" fill="currentColor" />
+                            <h3 className="font-bold text-sm uppercase tracking-wider">Tactical Insight</h3>
+                        </div>
+                        <p className="text-sm leading-relaxed font-medium text-violet-50 min-h-[60px]">
+                            {insight || "Analyze your performance trends to unlock efficiency gains."}
+                        </p>
+                        <Button 
+                            size="sm" 
+                            onClick={handleGetInsight} 
+                            isLoading={loadingInsight}
+                            className="mt-4 w-full bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-sm"
+                        >
+                            {insight ? 'Refresh Analysis' : 'Generate Report'}
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Mini Motivation */}
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                    <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
+                        <TrendingUp size={16} className="text-emerald-500" />
+                        Momentum
+                    </h3>
+                    <div className="flex items-end gap-2 mb-2">
+                        <span className="text-3xl font-black text-gray-900">{progress}%</span>
+                        <span className="text-sm text-gray-500 font-medium mb-1">Daily Goal</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
+                        <div className="bg-emerald-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div>
+                    </div>
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                        Consistent action creates consistent results. You are currently {progress >= 80 ? 'crushing it!' : 'on track, keep going.'}
+                    </p>
+                </div>
+          </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };

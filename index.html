@@ -9,9 +9,10 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #f8fafc;
+        background-color: #F9FAFB; /* Odoo light gray background */
+        color: #374151;
       }
-      /* Custom scrollbar for webkit */
+      /* Soft Odoo-like Scrollbar */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -20,11 +21,27 @@
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: #D1D5DB;
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9CA3AF;
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      /* Odoo-style Badge */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.125rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
       }
     </style>
   <script type="importmap">

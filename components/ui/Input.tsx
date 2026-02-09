@@ -8,10 +8,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export const Input: React.FC<InputProps> = ({ label, className, ...props }) => {
   return (
     <div className="w-full">
-      {label && <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>}
+      {label && <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>}
       <input 
         className={twMerge(
-          "w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400",
+          "w-full px-3 py-2 rounded border border-gray-300 bg-white text-gray-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-shadow placeholder:text-gray-400 text-sm",
           className
         )}
         {...props}
