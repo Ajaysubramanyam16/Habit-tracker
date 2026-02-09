@@ -1,4 +1,4 @@
-import { CategoryOption } from './types';
+import { CategoryOption, Badge } from './types';
 
 // Odoo-inspired color palette for tags/categories
 export const CATEGORIES: CategoryOption[] = [
@@ -21,6 +21,39 @@ export const COLORS = [
   '#7C3AED', // Violet
   '#374151', // Gray
   '#EC4899', // Pink
+];
+
+export const AVAILABLE_BADGES: Omit<Badge, 'unlockedAt'>[] = [
+    {
+        id: 'first_step',
+        name: 'First Step',
+        icon: '🏁',
+        description: 'Complete your very first habit.'
+    },
+    {
+        id: 'week_warrior',
+        name: 'Week Warrior',
+        icon: '🔥',
+        description: 'Reach a 7-day streak on any habit.'
+    },
+    {
+        id: 'polymath',
+        name: 'Polymath',
+        icon: '🧠',
+        description: 'Maintain active habits in 3 different categories.'
+    },
+    {
+        id: 'dedicated',
+        name: 'Dedicated',
+        icon: '⭐',
+        description: 'Reach Level 5.'
+    },
+    {
+        id: 'centurion',
+        name: 'Centurion',
+        icon: '💯',
+        description: 'Complete habits 100 times in total.'
+    }
 ];
 
 export const DEFAULT_HABITS_SEED = [

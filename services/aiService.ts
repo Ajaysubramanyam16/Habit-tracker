@@ -8,6 +8,40 @@ const getClient = () => {
     return new GoogleGenAI({ apiKey });
 }
 
+export const getAIBriefing = async (habits: Habit[], userName: string): Promise<string> => {
+    try {
+        const ai = getClient();
+        const today = new Date().toISOString().split('T')[0];
+        const activeHabits = habits.filter(h => !h.archived);
+        const pendingCount = activeHabits.filter(h => !h.logs[today]).length;
+        
+        // Find best performing habit
+        const bestHabit = activeHabits.sort((a,b) => b.streak - a.streak)[0];
+
+        const prompt = `
+            User: ${userName}
+            Context:
+            - Pending Habits Today: ${pendingCount}
+            - Best Streak: ${bestHabit ? `${bestHabit.name} (${bestHabit.streak} days)` : 'None'}
+            - Total Habits: ${activeHabits.length}
+            
+            Task: Write a concise (max 3 sentences) morning briefing for the dashboard. 
+            Be professional yet motivating. Mention a specific habit if their streak is high.
+            Do not use markdown.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+        });
+
+        return response.text || "Welcome back. Let's make today productive.";
+    } catch (error) {
+        console.error("AI Error", error);
+        return "Ready to conquer the day? Let's check off those habits.";
+    }
+}
+
 export const getAIInsight = async (habits: Habit[]): Promise<string> => {
   try {
     const ai = getClient();

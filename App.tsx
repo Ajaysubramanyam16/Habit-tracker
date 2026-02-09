@@ -14,9 +14,11 @@ import { ReflectionModal } from './components/habits/ReflectionModal';
 import { FocusTimer } from './components/tools/FocusTimer';
 import { Modal } from './components/ui/Modal';
 import { Button } from './components/ui/Button';
-import { Habit, ViewMode, Project, JournalEntry } from './types';
+import { AchievementModal } from './components/ui/AchievementModal';
+import { Habit, ViewMode, Project, JournalEntry, Badge } from './types';
 import { getHabits, saveHabits, toggleHabitCompletion, addJournalEntry } from './services/habitService';
-import { addXp } from './services/authService';
+import { addXp, saveUser } from './services/authService';
+import { checkBadges } from './services/gamificationService';
 import { Trash2, Activity } from 'lucide-react';
 
 function AppContent() {
@@ -29,10 +31,12 @@ function AppContent() {
   const [modalType, setModalType] = useState<'habit' | 'reflection' | 'focus'>('habit');
   const [editingHabit, setEditingHabit] = useState<Habit | undefined>(undefined);
   
+  // Gamification State
+  const [unlockedBadges, setUnlockedBadges] = useState<Badge[]>([]);
+  
   // Project State
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  // Only reload habits when the user ID changes, not when XP/Level changes (which also updates the user object)
   useEffect(() => {
     if (user?.id) {
         const data = getHabits();
@@ -46,6 +50,8 @@ function AppContent() {
   }, [user?.id]);
 
   const handleToggle = (id: string, date: string) => {
+    if (!user) return;
+    
     const wasCompleted = habits.find(h => h.id === id)?.logs[date];
     const updated = toggleHabitCompletion(habits, id, date);
     setHabits(updated);
@@ -53,8 +59,17 @@ function AppContent() {
     
     // Gamification Logic: +10 XP for completion
     if (!wasCompleted) {
-        addXp(10);
-        refreshUser(); // Update UI without reload
+        const { user: updatedUser } = addXp(10);
+        
+        // Check for new badges
+        const newBadges = checkBadges(updatedUser, updated);
+        if (newBadges.length > 0) {
+            updatedUser.badges = [...updatedUser.badges, ...newBadges];
+            saveUser(updatedUser);
+            setUnlockedBadges(newBadges); // Trigger Modal
+        }
+        
+        refreshUser(); 
     }
   };
   
@@ -95,7 +110,7 @@ function AppContent() {
   };
 
   const handleJournalEntry = (entry: JournalEntry) => {
-      if (editingHabit) {
+      if (editingHabit && user) {
           const todayStr = new Date().toISOString().split('T')[0];
           const updated = addJournalEntry(habits, editingHabit.id, todayStr, entry);
           setHabits(updated);
@@ -113,14 +128,16 @@ function AppContent() {
   };
   
   const handleFocusComplete = (habitId: string) => {
+      if (!user) return;
       const todayStr = new Date().toISOString().split('T')[0];
       const habit = habits.find(h => h.id === habitId);
       if (habit && !habit.logs[todayStr]) {
           handleToggle(habitId, todayStr);
+      } else {
+          // Just give XP if already checked
+           addXp(50);
+           refreshUser();
       }
-      addXp(50); // Big bonus for focus session
-      refreshUser();
-      alert("Focus Session Complete! +50 XP");
   };
 
   const openAddModal = () => {
@@ -234,6 +251,12 @@ function AppContent() {
       {currentView === 'settings' && (
         <SettingsPage user={user} />
       )}
+
+      {/* Global Modals */}
+      <AchievementModal 
+          badges={unlockedBadges} 
+          onClose={() => setUnlockedBadges([])} 
+      />
 
       <Modal 
         isOpen={isModalOpen} 

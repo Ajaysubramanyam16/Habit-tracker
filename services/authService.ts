@@ -14,6 +14,13 @@ const saveUsersDB = (users: User[]) => {
   localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(users));
 };
 
+export const saveUser = (user: User) => {
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+    const users = getUsersDB();
+    const updatedUsers = users.map(u => u.id === user.id ? user : u);
+    saveUsersDB(updatedUsers);
+}
+
 export const login = async (email: string): Promise<User> => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 800));
@@ -89,12 +96,7 @@ export const addXp = (amount: number): { user: User, leveledUp: boolean } => {
     
     const leveledUp = currentUser.level > oldLevel;
 
-    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(currentUser));
-    
-    // Update DB as well
-    const users = getUsersDB();
-    const updatedUsers = users.map(u => u.id === currentUser.id ? currentUser : u);
-    saveUsersDB(updatedUsers);
+    saveUser(currentUser);
 
     return { user: currentUser, leveledUp };
 };

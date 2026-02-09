@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Habit, User } from '../types';
-import { Check, Zap, Target, ArrowRight, Calendar, Grip, TrendingUp, Award, Activity, PenLine, Clock } from 'lucide-react';
+import { Check, Zap, Target, Calendar, TrendingUp, Award, Activity, PenLine, Clock, Sparkles } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 import { Button } from '../components/ui/Button';
-import { getAIInsight } from '../services/aiService';
+import { getAIBriefing } from '../services/aiService';
 
 interface DashboardProps {
   user: User;
@@ -14,35 +14,26 @@ interface DashboardProps {
   onReflect: (habit: Habit) => void;
 }
 
-const MOTIVATIONAL_QUOTES = [
-  "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
-  "Discipline is choosing between what you want now and what you want most.",
-  "Amateurs sit and wait for inspiration, the rest of us just get up and go to work.",
-  "Your future is created by what you do today, not tomorrow.",
-  "Do something today that your future self will thank you for."
-];
-
 export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, onEdit, onOpenFocus, onReflect }) => {
-  const [insight, setInsight] = useState<string | null>(null);
-  const [loadingInsight, setLoadingInsight] = useState(false);
-  const [quote, setQuote] = useState('');
+  const [briefing, setBriefing] = useState<string | null>(null);
+  const [loadingBriefing, setLoadingBriefing] = useState(false);
 
   useEffect(() => {
-    setQuote(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
-  }, []);
-  
+    // Generate briefing once on load if not present
+    const loadBriefing = async () => {
+        setLoadingBriefing(true);
+        const text = await getAIBriefing(habits, user.name);
+        setBriefing(text);
+        setLoadingBriefing(false);
+    };
+    loadBriefing();
+  }, [user.name]); // Run once per user session effectively
+
   const todayStr = new Date().toISOString().split('T')[0];
   const todaysHabits = habits.filter(h => !h.archived);
   const completedCount = todaysHabits.filter(h => h.logs[todayStr]).length;
   const progress = todaysHabits.length > 0 ? Math.round((completedCount / todaysHabits.length) * 100) : 0;
   
-  const handleGetInsight = async () => {
-    setLoadingInsight(true);
-    const text = await getAIInsight(habits);
-    setInsight(text);
-    setLoadingInsight(false);
-  };
-
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
@@ -72,82 +63,95 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
       {/* Hero / Command Center Header */}
       <motion.div 
         variants={itemVariants}
-        className="relative overflow-hidden rounded-xl bg-white shadow-lg border border-gray-200 group"
+        className="relative overflow-hidden rounded-2xl bg-white shadow-lg border border-gray-200 group"
       >
         <div className="absolute inset-0 z-0">
-             <img 
-                src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
-                className="w-full h-full object-cover opacity-10 group-hover:scale-105 transition-transform duration-700"
-                alt="Abstract Background"
-             />
-             <div className="absolute inset-0 bg-gradient-to-r from-violet-900/10 to-transparent"></div>
+             <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-90"></div>
+             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
+             <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2"></div>
         </div>
 
-        <div className="relative z-10 p-8 md:p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-1 rounded bg-violet-100 text-violet-700 text-xs font-bold uppercase tracking-wider">
-                        Command Center
+        <div className="relative z-10 p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 text-white">
+            <div className="flex-1">
+                <div className="flex items-center gap-2 mb-3">
+                    <span className="px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider border border-white/10">
+                        Morning Briefing
                     </span>
-                    <span className="text-gray-400 text-xs font-mono">{todayStr}</span>
+                    <span className="text-violet-200 text-xs font-mono">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
                 </div>
-                <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
-                    Welcome back, {user.name.split(' ')[0]}.
+                <h1 className="text-3xl font-extrabold tracking-tight mb-3">
+                    Hello, {user.name.split(' ')[0]}.
                 </h1>
-                <p className="text-gray-600 font-medium italic max-w-xl text-lg opacity-80 border-l-4 border-violet-500 pl-4 mt-4">
-                    "{quote}"
-                </p>
+                
+                <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 max-w-xl">
+                    {loadingBriefing ? (
+                        <div className="flex items-center gap-2 text-sm text-violet-200">
+                            <Sparkles size={16} className="animate-spin" /> Analyzing schedule...
+                        </div>
+                    ) : (
+                        <p className="text-sm md:text-base leading-relaxed font-medium text-violet-50">
+                            "{briefing}"
+                        </p>
+                    )}
+                </div>
             </div>
             
-            <div className="hidden md:block text-right">
-                <div className="relative w-24 h-24 flex items-center justify-center">
+            <div className="hidden md:flex flex-col items-center">
+                <div className="relative w-28 h-28 flex items-center justify-center">
                     <svg className="w-full h-full transform -rotate-90">
-                        <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
-                        <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * progress) / 100} className="text-violet-600 transition-all duration-1000 ease-out" />
+                        <circle cx="56" cy="56" r="46" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/20" />
+                        <circle 
+                            cx="56" cy="56" r="46" 
+                            stroke="currentColor" strokeWidth="8" fill="transparent" 
+                            strokeDasharray="289" 
+                            strokeDashoffset={289 - (289 * progress) / 100} 
+                            className="text-white transition-all duration-1000 ease-out" 
+                            strokeLinecap="round"
+                        />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-xl font-bold text-gray-900">{progress}%</span>
-                        <span className="text-[10px] uppercase text-gray-500 font-bold">Done</span>
+                        <span className="text-2xl font-bold">{progress}%</span>
                     </div>
                 </div>
+                <span className="text-xs font-medium text-violet-200 mt-2 uppercase tracking-wide">Daily Completion</span>
             </div>
         </div>
       </motion.div>
 
       {/* KPI Cards */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
-            <div className="p-4 rounded-full bg-blue-50 text-blue-600">
-                <Target size={28} />
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-5">
+            <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
+                <Target size={24} />
             </div>
             <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Remaining</p>
-                <p className="text-3xl font-bold text-gray-800">{todaysHabits.length - completedCount}</p>
-                <p className="text-xs text-blue-600 font-medium mt-1">Focus required</p>
+                <p className="text-2xl font-bold text-gray-800">{todaysHabits.length - completedCount}</p>
             </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
-            <div className="p-4 rounded-full bg-emerald-50 text-emerald-600">
-                <Check size={28} />
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-5">
+            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
+                <Check size={24} />
             </div>
             <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Completed</p>
-                <p className="text-3xl font-bold text-gray-800">{completedCount}</p>
-                <p className="text-xs text-emerald-600 font-medium mt-1">Keep pushing</p>
+                <p className="text-2xl font-bold text-gray-800">{completedCount}</p>
             </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
-            <div className="p-4 rounded-full bg-amber-50 text-amber-600">
-                <Award size={28} />
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-5 relative overflow-hidden">
+            <div className="absolute right-0 top-0 p-4 opacity-5">
+                <Award size={64} />
             </div>
-            <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Level {user.level || 1}</p>
-                <p className="text-3xl font-bold text-gray-800">
-                    {user.xp || 0} <span className="text-sm font-normal text-gray-400">XP</span>
+            <div className="p-3 rounded-xl bg-amber-50 text-amber-600 z-10">
+                <Award size={24} />
+            </div>
+            <div className="z-10">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Badges</p>
+                <p className="text-2xl font-bold text-gray-800">
+                    {user.badges.length} <span className="text-sm font-normal text-gray-400">Unlocked</span>
                 </p>
-                <p className="text-xs text-amber-600 font-medium mt-1">Next Level: 100 XP</p>
             </div>
         </div>
       </motion.div>
@@ -156,13 +160,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Habits List */}
           <motion.div variants={itemVariants} className="lg:col-span-2">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80 backdrop-blur-sm">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                     <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                         <Activity size={20} className="text-violet-600" />
-                        Active Protocols
+                        Today's Protocols
                     </h2>
-                    <Button size="sm" onClick={onOpenFocus} className="bg-violet-600 text-white">
+                    <Button size="sm" onClick={onOpenFocus} className="bg-violet-600 text-white shadow-violet-200">
                         <Clock size={16} className="mr-2" /> Focus Mode
                     </Button>
                 </div>
@@ -175,12 +179,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
                             <motion.div 
                                 key={habit.id}
                                 layoutId={habit.id}
-                                className={`group flex items-center justify-between p-5 hover:bg-gray-50 transition-all cursor-pointer border-l-4 ${isCompleted ? 'bg-gray-50/50 border-green-500' : 'border-transparent hover:border-violet-500'}`}
+                                className={`group flex items-center justify-between p-5 hover:bg-gray-50 transition-all cursor-pointer border-l-4 ${isCompleted ? 'bg-gray-50/50 border-emerald-400' : 'border-transparent hover:border-violet-500'}`}
                                 onClick={() => onEdit(habit)}
                             >
                                 <div className="flex items-center gap-5 flex-1">
                                     <div 
-                                        className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg shadow-sm transition-transform group-hover:scale-105 ${isCompleted ? 'bg-gray-200 text-gray-400' : 'text-white'}`} 
+                                        className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-sm transition-transform group-hover:scale-105 ${isCompleted ? 'bg-gray-100 text-gray-400' : 'text-white'}`} 
                                         style={{ backgroundColor: isCompleted ? undefined : habit.color }}
                                     >
                                         {habit.name.charAt(0)}
@@ -190,12 +194,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
                                             {habit.name}
                                         </h3>
                                         <div className="flex items-center gap-3 mt-1.5">
-                                            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm font-bold bg-gray-100 text-gray-600`}>
+                                            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded font-bold bg-gray-100 text-gray-600`}>
                                                 {habit.category}
                                             </span>
                                             {habit.streak > 0 && (
-                                                <span className="text-[10px] font-bold text-orange-600 flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded-sm">
-                                                    <Zap size={10} fill="currentColor" /> {habit.streak} DAY STREAK
+                                                <span className="text-[10px] font-bold text-orange-600 flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
+                                                    <Zap size={10} fill="currentColor" /> {habit.streak}
                                                 </span>
                                             )}
                                         </div>
@@ -205,16 +209,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
                                 <div className="flex items-center gap-2">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); onReflect(habit); }}
-                                        className="w-10 h-10 rounded-lg border border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex items-center justify-center transition-colors"
+                                        className="w-10 h-10 rounded-xl border border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex items-center justify-center transition-colors"
                                         title="Log Reflection"
                                     >
                                         <PenLine size={18} />
                                     </button>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); onToggle(habit.id, todayStr); }}
-                                        className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
+                                        className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all duration-300 ${
                                             isCompleted 
-                                            ? 'bg-green-500 border-green-500 text-white shadow-md scale-100' 
+                                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-md scale-100' 
                                             : 'bg-white border-gray-200 text-transparent hover:border-violet-500 hover:text-violet-200 scale-95 hover:scale-100'
                                         }`}
                                     >
@@ -236,45 +240,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, habits, onToggle, on
             </div>
           </motion.div>
 
-          {/* AI Side Panel */}
+          {/* Side Panel: Achievements Preview & Mini Stats */}
           <motion.div variants={itemVariants} className="space-y-6">
-               {/* Insight Widget */}
-                <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-xl shadow-lg p-6 text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Zap size={20} className="text-amber-300" fill="currentColor" />
-                            <h3 className="font-bold text-sm uppercase tracking-wider">Tactical Insight</h3>
+                
+                {/* Achievement Showcase */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                    <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
+                        <Award size={16} className="text-amber-500" />
+                        Recent Badges
+                    </h3>
+                    
+                    {user.badges.length > 0 ? (
+                        <div className="grid grid-cols-4 gap-2">
+                            {user.badges.slice(-4).reverse().map((badge) => (
+                                <div key={badge.id} className="aspect-square rounded-xl bg-amber-50 border border-amber-100 flex flex-col items-center justify-center text-center p-1 group relative cursor-help">
+                                    <span className="text-2xl mb-1">{badge.icon}</span>
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-32 bg-gray-900 text-white text-xs rounded p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                                        <p className="font-bold">{badge.name}</p>
+                                        <p className="text-[10px] text-gray-300">{badge.description}</p>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                        <p className="text-sm leading-relaxed font-medium text-violet-50 min-h-[60px]">
-                            {insight || "Analyze your performance trends to unlock efficiency gains."}
-                        </p>
-                        <Button 
-                            size="sm" 
-                            onClick={handleGetInsight} 
-                            isLoading={loadingInsight}
-                            className="mt-4 w-full bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-sm"
-                        >
-                            {insight ? 'Refresh Analysis' : 'Generate Report'}
-                        </Button>
-                    </div>
+                    ) : (
+                        <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                            <p className="text-xs text-gray-400">No badges yet.</p>
+                            <p className="text-xs text-gray-400">Complete tasks to unlock!</p>
+                        </div>
+                    )}
                 </div>
 
-                {/* Mini Motivation */}
-                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                {/* Level Progress */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                     <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
-                        <TrendingUp size={16} className="text-emerald-500" />
-                        Momentum
+                        <TrendingUp size={16} className="text-violet-500" />
+                        Level Progress
                     </h3>
-                    <div className="flex items-end gap-2 mb-2">
-                        <span className="text-3xl font-black text-gray-900">{progress}%</span>
-                        <span className="text-sm text-gray-500 font-medium mb-1">Daily Goal</span>
+                    <div className="flex justify-between items-end mb-2">
+                        <span className="text-3xl font-black text-gray-900">Lvl {user.level}</span>
+                        <span className="text-sm text-gray-500 font-medium mb-1">{user.xp} XP</span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
-                        <div className="bg-emerald-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div>
+                    {/* XP Logic: Level N requires roughly (N-1)^2 * 100 XP. Progress to next level logic simplified for UI */}
+                    <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                        <div 
+                            className="bg-gradient-to-r from-violet-500 to-fuchsia-500 h-full rounded-full transition-all duration-1000" 
+                            style={{ width: `${Math.min((user.xp % 100), 100)}%` }} // Simplified visual progress
+                        ></div>
                     </div>
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                        Consistent action creates consistent results. You are currently {progress >= 80 ? 'crushing it!' : 'on track, keep going.'}
+                    <p className="text-xs text-gray-500 mt-3">
+                        Earn 10 XP for every completed habit. 50 XP for focus sessions.
                     </p>
                 </div>
           </motion.div>
