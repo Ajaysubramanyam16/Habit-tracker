@@ -3,7 +3,7 @@ import { CATEGORIES, COLORS } from '../../constants';
 import { Habit, Frequency } from '../../types';
 import { Button } from '../ui/Button';
 import { Check, ChevronDown } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid'; // Actually we don't have uuid, let's use a simple generator
+import { useAuth } from '../../contexts/AuthContext';
 
 const simpleId = () => Math.random().toString(36).substr(2, 9);
 
@@ -14,6 +14,7 @@ interface HabitFormProps {
 }
 
 export const HabitForm: React.FC<HabitFormProps> = ({ initialData, onSubmit, onCancel }) => {
+  const { user } = useAuth();
   const [name, setName] = useState(initialData?.name || '');
   const [category, setCategory] = useState(initialData?.category || 'health');
   const [frequency, setFrequency] = useState<Frequency>(initialData?.frequency || 'daily');
@@ -22,6 +23,8 @@ export const HabitForm: React.FC<HabitFormProps> = ({ initialData, onSubmit, onC
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
     const newHabit: Habit = {
       id: initialData?.id || simpleId(),
       name,
@@ -34,6 +37,7 @@ export const HabitForm: React.FC<HabitFormProps> = ({ initialData, onSubmit, onC
       streak: initialData?.streak || 0,
       bestStreak: initialData?.bestStreak || 0,
       archived: initialData?.archived || false,
+      userId: initialData?.userId || user.id,
     };
     onSubmit(newHabit);
   };

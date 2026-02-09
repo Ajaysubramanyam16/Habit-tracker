@@ -1,30 +1,59 @@
 import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Layout } from './components/Layout';
+import { AuthPage } from './pages/AuthPage';
 import { Dashboard } from './pages/Dashboard';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { ProjectsDashboard } from './pages/ProjectsDashboard';
+import { ProjectBoard } from './pages/ProjectBoard';
+import { AIAssistantPage } from './pages/AIAssistantPage';
 import { HabitForm } from './components/habits/HabitForm';
 import { Modal } from './components/ui/Modal';
-import { Habit, ViewMode } from './types';
-import { getHabits, saveHabits, toggleHabitCompletion } from './services/habitService';
-import { Trash2, Archive, Activity } from 'lucide-react';
 import { Button } from './components/ui/Button';
+import { Habit, ViewMode, Project } from './types';
+import { getHabits, saveHabits, toggleHabitCompletion } from './services/habitService';
+import { Trash2, Activity } from 'lucide-react';
 
-function App() {
+function AppContent() {
+  const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
   const [habits, setHabits] = useState<Habit[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | undefined>(undefined);
+  
+  // Project State
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    // Load data
-    const data = getHabits();
-    setHabits(data);
-  }, []);
+    if (user) {
+        const data = getHabits();
+        // In a real app, API returns user specific data. 
+        // Here we filter locally or just assign all to the user if they have no ID (legacy/seed data)
+        const userHabits = data.map(h => {
+             if (!h.userId) return { ...h, userId: user.id };
+             return h;
+        }).filter(h => h.userId === user.id);
+        
+        // If it's a new user and no habits, maybe we want to show seeded habits? 
+        // For now, let's just show what matches or the seeded list if it matches
+        // The getHabits() service already seeds. We just need to ensure the seeded data belongs to the first user or similar.
+        // For simplicity in this demo: if the habit has no userId, we assume it belongs to the current user.
+        
+        setHabits(userHabits.length > 0 ? userHabits : data.filter(h => !h.userId));
+    }
+  }, [user]);
 
   const handleToggle = (id: string, date: string) => {
     const updated = toggleHabitCompletion(habits, id, date);
     setHabits(updated);
-    saveHabits(updated);
+    
+    // We need to save ALL habits back to storage, not just the user's filtered list
+    const allHabits = getHabits();
+    const merged = allHabits.map(h => {
+        const updatedHabit = updated.find(u => u.id === h.id);
+        return updatedHabit || h;
+    });
+    saveHabits(merged);
   };
 
   const handleAddHabit = (habit: Habit) => {
@@ -35,7 +64,17 @@ function App() {
         updated = [...habits, habit];
     }
     setHabits(updated);
-    saveHabits(updated);
+    
+    // Save to storage
+    const allHabits = getHabits();
+    let finalStorage;
+    if (editingHabit) {
+         finalStorage = allHabits.map(h => h.id === habit.id ? habit : h);
+    } else {
+         finalStorage = [...allHabits, habit];
+    }
+    saveHabits(finalStorage);
+    
     setIsModalOpen(false);
     setEditingHabit(undefined);
   };
@@ -44,8 +83,12 @@ function App() {
       if (confirm('Are you sure you want to delete this habit?')) {
           const updated = habits.filter(h => h.id !== id);
           setHabits(updated);
-          saveHabits(updated);
-          setIsModalOpen(false); // Close modal if editing
+          
+          const allHabits = getHabits();
+          const finalStorage = allHabits.filter(h => h.id !== id);
+          saveHabits(finalStorage);
+          
+          setIsModalOpen(false);
       }
   };
 
@@ -59,9 +102,32 @@ function App() {
       setIsModalOpen(true);
   };
 
-  // Simple Habits List View for "My Habits" page
+  if (isLoading) {
+    return <div className="h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>;
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  // Handle Project View switching
+  if (selectedProject) {
+      return (
+          <div className="min-h-screen bg-slate-50 p-4">
+              <div className="max-w-7xl mx-auto h-[calc(100vh-2rem)]">
+                <ProjectBoard 
+                    project={selectedProject} 
+                    user={user}
+                    onBack={() => setSelectedProject(null)}
+                    onUpdate={(p) => setSelectedProject(p)}
+                />
+              </div>
+          </div>
+      )
+  }
+
   const HabitsList = () => (
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in">
           <h1 className="text-3xl font-bold text-slate-800">My Habits</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {habits.map(habit => (
@@ -97,13 +163,19 @@ function App() {
       onAddHabit={openAddModal}
     >
       {currentView === 'dashboard' && (
-        <Dashboard habits={habits} onToggle={handleToggle} onEdit={openEditModal} />
+        <Dashboard user={user} habits={habits} onToggle={handleToggle} onEdit={openEditModal} />
       )}
       {currentView === 'habits' && (
         <HabitsList />
       )}
+      {currentView === 'projects' && (
+          <ProjectsDashboard user={user} onSelectProject={setSelectedProject} />
+      )}
       {currentView === 'analytics' && (
         <AnalyticsPage habits={habits} />
+      )}
+      {currentView === 'ai-assistant' && (
+        <AIAssistantPage habits={habits} />
       )}
 
       <Modal 
@@ -129,4 +201,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+    return (
+        <AuthProvider>
+            <AppContent />
+        </AuthProvider>
+    );
+}
